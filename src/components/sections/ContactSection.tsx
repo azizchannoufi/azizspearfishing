@@ -7,8 +7,8 @@ import { assets } from "@/lib/assets";
 import { gsap, registerGsap } from "@/lib/gsap";
 import { usePreloader } from "@/components/providers/PreloaderProvider";
 import { useReducedMotion } from "@/components/providers/ReducedMotionProvider";
-import { MagneticButton } from "@/components/ui/MagneticButton";
 import { RevealText } from "@/components/ui/RevealText";
+import { ContactForm } from "@/components/sections/ContactForm";
 
 export function ContactSection() {
   const rootRef = useRef<HTMLElement>(null);
@@ -97,10 +97,8 @@ export function ContactSection() {
           {athlete.contactHeadline}
         </RevealText>
 
-        <div className="mt-12 flex justify-center">
-          <MagneticButton href={`mailto:${athlete.email}`}>
-            {athlete.contactCta}
-          </MagneticButton>
+        <div className="mt-8 flex justify-center">
+          <ContactForm emailFallback={athlete.email} />
         </div>
 
         <div className="mt-16 flex flex-wrap items-center justify-center gap-8">

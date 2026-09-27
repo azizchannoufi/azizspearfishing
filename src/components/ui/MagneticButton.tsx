@@ -16,6 +16,7 @@ type MagneticButtonProps = {
   href?: string;
   onClick?: (e: MouseEvent<HTMLElement>) => void;
   type?: "button" | "submit";
+  disabled?: boolean;
 };
 
 export function MagneticButton({
@@ -25,6 +26,7 @@ export function MagneticButton({
   href,
   onClick,
   type = "button",
+  disabled = false,
 }: MagneticButtonProps) {
   const ref = useRef<HTMLAnchorElement | HTMLButtonElement>(null);
   const { reducedMotion } = useReducedMotion();
@@ -70,6 +72,7 @@ export function MagneticButton({
     <motion.button
       ref={ref as React.RefObject<HTMLButtonElement>}
       type={type}
+      disabled={disabled}
       onClick={onClick}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
