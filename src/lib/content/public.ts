@@ -230,7 +230,7 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
       const d = snap.docs[0]!;
       const data = d.data() as Article;
       if (data.visible === false) return null;
-      return { id: d.id, ...data };
+      return { ...data, id: d.id };
     };
 
     try {
