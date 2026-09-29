@@ -1,9 +1,10 @@
+import { Fragment } from "react";
 import { Preloader } from "@/components/preloader/Preloader";
 import { Navigation } from "@/components/navigation/Navigation";
 import { Footer } from "@/components/sections/Footer";
 import { ContactForm } from "@/components/sections/ContactForm";
 import type { HomeCmsData } from "@/lib/content/load-home";
-import type { HomepageSectionKey } from "@/lib/firebase/types";
+import type { HomepageSectionKey, SocialLinks } from "@/lib/firebase/types";
 import Link from "next/link";
 
 const SOCIAL_KEYS = [
@@ -16,6 +17,26 @@ const SOCIAL_KEYS = [
   "email",
 ] as const;
 
+const SOCIAL_STAT_FIELDS: Array<{
+  key: keyof SocialLinks;
+  network: string;
+  label: string;
+}> = [
+  { key: "instagramFollowers", network: "Instagram", label: "Followers" },
+  { key: "instagramViews", network: "Instagram", label: "Views" },
+  { key: "youtubeSubscribers", network: "YouTube", label: "Subscribers" },
+  { key: "youtubeViews", network: "YouTube", label: "Views" },
+  { key: "tiktokFollowers", network: "TikTok", label: "Followers" },
+  { key: "tiktokViews", network: "TikTok", label: "Views" },
+  { key: "facebookFollowers", network: "Facebook", label: "Followers" },
+  { key: "facebookViews", network: "Facebook", label: "Views" },
+];
+
+const NETWORK_ORDER = ["Instagram", "YouTube", "TikTok", "Facebook"] as const;
+
+type SocialReachMetric = { id: string; label: string; value: string };
+type SocialReachGroup = { network: string; metrics: SocialReachMetric[] };
+
 function enabled(data: HomeCmsData, key: HomepageSectionKey) {
   const section = data.sections.find((s) => s.key === key);
   return section ? section.enabled : true;
@@ -26,12 +47,68 @@ function socialHref(value: string) {
   return value;
 }
 
+function socialReachGroups(social: SocialLinks | null | undefined): SocialReachGroup[] {
+  if (!social) return [];
+
+  const byNetwork = new Map<string, SocialReachMetric[]>();
+  for (const field of SOCIAL_STAT_FIELDS) {
+    const value = social[field.key];
+    if (typeof value !== "string" || !value.trim()) continue;
+    const list = byNetwork.get(field.network) || [];
+    list.push({ id: field.key, label: field.label, value: value.trim() });
+    byNetwork.set(field.network, list);
+  }
+
+  return NETWORK_ORDER.filter((network) => byNetwork.has(network)).map((network) => ({
+    network,
+    metrics: byNetwork.get(network)!,
+  }));
+}
+
+function SocialReachSection({ groups }: { groups: SocialReachGroup[] }) {
+  if (groups.length === 0) return null;
+  return (
+    <section id="social" className="section-pad border-b border-foam/10 py-16 md:py-20">
+      <p className="text-center text-[11px] tracking-[0.35em] text-foam-muted">SOCIAL REACH</p>
+      <div
+        className={`mx-auto mt-12 grid max-w-6xl gap-10 sm:gap-8 ${
+          groups.length === 1
+            ? "sm:grid-cols-1"
+            : groups.length === 2
+              ? "sm:grid-cols-2"
+              : groups.length === 3
+                ? "sm:grid-cols-3"
+                : "sm:grid-cols-2 lg:grid-cols-4"
+        }`}
+      >
+        {groups.map((group) => (
+          <div
+            key={group.network}
+            className="border-t border-foam/15 pt-6 text-center sm:border-t-0 sm:border-l sm:border-foam/15 sm:pt-0 sm:pl-8 first:sm:border-l-0 first:sm:pl-0"
+          >
+            <p className="text-[11px] tracking-[0.35em] text-accent-teal">{group.network.toUpperCase()}</p>
+            <div className="mt-6 flex flex-row justify-center gap-10 sm:flex-col sm:gap-8">
+              {group.metrics.map((metric) => (
+                <div key={metric.id}>
+                  <p className="font-display text-4xl text-foam md:text-5xl">{metric.value}</p>
+                  <p className="mt-2 text-[11px] tracking-[0.28em] text-foam-muted">{metric.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function CmsHome({ data }: { data: HomeCmsData }) {
   const brand = data.settings?.athleteName || data.athlete?.name || data.hero?.title || "AZIZ";
   const socialEntries = SOCIAL_KEYS.map((key) => {
     const value = data.social?.[key];
     return typeof value === "string" && value.trim() ? ([key, value.trim()] as const) : null;
   }).filter((entry): entry is readonly [typeof SOCIAL_KEYS[number], string] => entry !== null);
+  const socialReach = socialReachGroups(data.social);
 
   const blocks = data.sections
     .filter((s) => s.enabled)
@@ -73,58 +150,60 @@ export function CmsHome({ data }: { data: HomeCmsData }) {
       {order.map((key) => {
         if (key === "hero" && enabled(data, "hero") && data.hero) {
           return (
-            <section
-              key="hero"
-              id="hero"
-              className="relative flex min-h-[100svh] items-end overflow-hidden bg-ocean-deep pb-16 pt-28 md:items-center md:pb-0"
-            >
-              {data.hero.image?.secureUrl && (
-                <div className="absolute inset-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={data.hero.image.secureUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-ocean-deep/55 via-ocean-deep/35 to-ocean-deep" />
-                </div>
-              )}
-              <div className="section-pad relative z-10 w-full max-w-6xl">
-                <h1 className="font-display text-[clamp(4.5rem,14vw,9rem)] leading-[0.9] text-foam">
-                  {data.hero.title || brand}
-                </h1>
-                {data.hero.subtitle && (
-                  <p className="mt-4 font-display text-[clamp(1.4rem,4vw,2.6rem)] text-foam/90">
-                    {data.hero.subtitle}
-                  </p>
-                )}
-                {data.hero.description && (
-                  <p className="mt-6 max-w-xl whitespace-pre-line text-foam-muted">
-                    {data.hero.description}
-                  </p>
-                )}
-                {(data.hero.primaryButtonText || data.hero.secondaryButtonText) && (
-                  <div className="mt-10 flex flex-wrap gap-4">
-                    {data.hero.primaryButtonText && (
-                      <a
-                        href={data.hero.primaryButtonLink || "#about"}
-                        className="border border-foam/40 px-5 py-3 text-xs tracking-[0.2em] text-foam"
-                      >
-                        {data.hero.primaryButtonText}
-                      </a>
-                    )}
-                    {data.hero.secondaryButtonText && (
-                      <a
-                        href={data.hero.secondaryButtonLink || "#contact"}
-                        className="px-5 py-3 text-xs tracking-[0.2em] text-foam-muted"
-                      >
-                        {data.hero.secondaryButtonText}
-                      </a>
-                    )}
+            <Fragment key="hero">
+              <section
+                id="hero"
+                className="relative flex min-h-[100svh] items-end overflow-hidden bg-ocean-deep pb-16 pt-28 md:items-center md:pb-0"
+              >
+                {data.hero.image?.secureUrl && (
+                  <div className="absolute inset-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={data.hero.image.secureUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-ocean-deep/55 via-ocean-deep/35 to-ocean-deep" />
                   </div>
                 )}
-              </div>
-            </section>
+                <div className="section-pad relative z-10 w-full max-w-6xl">
+                  <h1 className="font-display text-[clamp(4.5rem,14vw,9rem)] leading-[0.9] text-foam">
+                    {data.hero.title || brand}
+                  </h1>
+                  {data.hero.subtitle && (
+                    <p className="mt-4 font-display text-[clamp(1.4rem,4vw,2.6rem)] text-foam/90">
+                      {data.hero.subtitle}
+                    </p>
+                  )}
+                  {data.hero.description && (
+                    <p className="mt-6 max-w-xl whitespace-pre-line text-foam-muted">
+                      {data.hero.description}
+                    </p>
+                  )}
+                  {(data.hero.primaryButtonText || data.hero.secondaryButtonText) && (
+                    <div className="mt-10 flex flex-wrap gap-4">
+                      {data.hero.primaryButtonText && (
+                        <a
+                          href={data.hero.primaryButtonLink || "#about"}
+                          className="border border-foam/40 px-5 py-3 text-xs tracking-[0.2em] text-foam"
+                        >
+                          {data.hero.primaryButtonText}
+                        </a>
+                      )}
+                      {data.hero.secondaryButtonText && (
+                        <a
+                          href={data.hero.secondaryButtonLink || "#contact"}
+                          className="px-5 py-3 text-xs tracking-[0.2em] text-foam-muted"
+                        >
+                          {data.hero.secondaryButtonText}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+              <SocialReachSection groups={socialReach} />
+            </Fragment>
           );
         }
 
@@ -425,6 +504,11 @@ export function CmsHome({ data }: { data: HomeCmsData }) {
 
         return null;
       })}
+
+      {/* If hero is missing, still show social reach near the top */}
+      {socialReach.length > 0 && !(enabled(data, "hero") && data.hero) && (
+        <SocialReachSection groups={socialReach} />
+      )}
 
       {!data.hero && !data.athlete && data.gallery.length === 0 && (
         <section className="flex min-h-[70svh] items-center justify-center px-6 text-center">

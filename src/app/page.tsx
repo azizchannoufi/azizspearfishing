@@ -16,6 +16,9 @@ import { loadHomeCms } from "@/lib/content/load-home";
 import type { Metadata } from "next";
 import { getSeo, getSiteSettings } from "@/lib/content/public";
 
+/** Refresh CMS content (including social stats) without a full redeploy. */
+export const revalidate = 60;
+
 export async function generateMetadata(): Promise<Metadata> {
   const [seo, settings] = await Promise.all([getSeo("home"), getSiteSettings()]);
   return {

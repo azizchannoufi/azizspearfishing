@@ -225,6 +225,15 @@ export interface SocialLinks {
   linkedin: string;
   x: string;
   email: string;
+  /** Manual public stats — free-form so values like "12K" / "1.2M" work */
+  instagramFollowers: string;
+  instagramViews: string;
+  youtubeSubscribers: string;
+  youtubeViews: string;
+  tiktokFollowers: string;
+  tiktokViews: string;
+  facebookFollowers: string;
+  facebookViews: string;
 }
 
 export interface SeoPage {
